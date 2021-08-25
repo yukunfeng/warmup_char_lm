@@ -1,0 +1,424 @@
+# coding: utf-8
+import argparse
+import time
+import datetime
+import math
+import os
+import torch
+import torch.nn as nn
+import torch.onnx
+import torchtext
+
+import data
+import model
+import skip_gram
+import word2vec
+
+parser = argparse.ArgumentParser(description='PyTorch Wikitext-2 RNN/LSTM Language Model')
+parser.add_argument('--data', type=str, default='./data/wikitext-2',
+                    help='location of the data corpus')
+parser.add_argument('--model', type=str, default='LSTM',
+                    help='type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU)')
+parser.add_argument('--emsize', type=int, default=200,
+                    help='size of word embeddings')
+parser.add_argument('--nhid', type=int, default=200,
+                    help='number of hidden units per layer')
+parser.add_argument('--nlayers', type=int, default=2,
+                    help='number of layers')
+parser.add_argument('--lr', type=float, default=20,
+                    help='initial learning rate')
+parser.add_argument('--clip', type=float, default=0.25,
+                    help='gradient clipping')
+parser.add_argument('--epochs', type=int, default=40,
+                    help='upper epoch limit')
+parser.add_argument('--batch_size', type=int, default=20, metavar='N',
+                    help='batch size')
+parser.add_argument('--bptt', type=int, default=35,
+                    help='sequence length')
+parser.add_argument('--dropout', type=float, default=0.2,
+                    help='dropout applied to layers (0 = no dropout)')
+parser.add_argument('--tied', action='store_true',
+                    help='tie the word embedding and softmax weights')
+parser.add_argument('--skip_gram_use_word', action='store_true',
+                    help='whether add word in skipgram model')
+parser.add_argument('--seed', type=int, default=1111,
+                    help='random seed')
+parser.add_argument('--device', type=str, default='cuda:0',
+                    help='cuda')
+parser.add_argument('--log-interval', type=int, default=200, metavar='N',
+                    help='report interval')
+parser.add_argument('--save', type=str, default='model.pt',
+                    help='path to save the final model')
+parser.add_argument('--freq_thre', type=int, default=-1,
+                    help='freq threshould')
+parser.add_argument('--max_gram_n', type=int, default=3,
+                    help='ngram n')
+parser.add_argument('--input_freq', type=int, default=None,
+                    help='freq threshould for input word')
+parser.add_argument('--note', type=str, default="",
+                    help='extra note in final one-line result output')
+parser.add_argument('--use_word2vec', action='store_true',
+                    help='whether use word2vec')
+args = parser.parse_args()
+# generate out emb path
+file_path = os.path.expanduser(args.data)
+head, tail = os.path.split(file_path)
+args.word2vec_out_emb = f"{file_path}/word2vec.{args.note}.emb"
+
+if tail in ["ja", "zh"]:
+    # Chinese and japanese are better to set as 1.
+    args.max_gram_n = 1
+
+print(args)
+
+# Set the random seed manually for reproducibility.
+torch.manual_seed(args.seed)
+if torch.cuda.is_available():
+    pass
+    #  if not args.cuda:
+        #  print("WARNING: You have a CUDA device, so you should probably run with --cuda")
+
+#  device = torch.device("cuda" if args.cuda else "cpu")
+device = torch.device(args.device)
+
+
+###############################################################################
+# Load data
+###############################################################################
+
+input_extra_unk = "<input_extra_unk>"
+if args.tied:
+    input_extra_unk = None
+corpus = data.Corpus(
+    args.data,
+    freq_thre=args.freq_thre,
+    use_ngram=True,
+    max_gram_n=args.max_gram_n,
+    input_freq=args.input_freq,
+    input_extra_unk=input_extra_unk
+)
+
+# Starting from sequential data, batchify arranges the dataset into columns.
+# For instance, with the alphabet as the sequence and batch size 4, we'd get
+# ┌ a g m s ┐
+# │ b h n t │
+# │ c i o u │
+# │ d j p v │
+# │ e k q w │
+# └ f l r x ┘.
+# These columns are treated as independent by the model, which means that the
+# dependence of e. g. 'g' on 'f' can not be learned, but allows more efficient
+# batch processing.
+
+##########################
+#  load pre-trained emb  #
+##########################
+
+
+def batchify(data, bsz):
+    # Work out how cleanly we can divide the dataset into bsz parts.
+    nbatch = data.size(0) // bsz
+    # Trim off any extra elements that wouldn't cleanly fit (remainders).
+    data = data.narrow(0, 0, nbatch * bsz)
+    # Evenly divide the data across the bsz batches.
+    data = data.view(bsz, -1).t().contiguous()
+    return data.to(device)
+
+
+def batchify_ngram(data, bsz):
+    nbatch = data.size(0) // bsz
+    data = data.narrow(0, 0, nbatch * bsz)
+    data = data.view(bsz, nbatch, -1).t().contiguous()
+    return data.to(device)
+
+
+eval_batch_size = 10
+train_data = batchify(corpus.train, args.batch_size)
+val_data = batchify(corpus.valid, eval_batch_size)
+test_data = batchify(corpus.test, eval_batch_size)
+
+# get fixed input data
+fixed_train_data = batchify(corpus.train_fixed, args.batch_size)
+fixed_val_data = batchify(corpus.valid_fixed, eval_batch_size)
+fixed_test_data = batchify(corpus.test_fixed, eval_batch_size)
+
+ngram_train = batchify_ngram(corpus.ngram_train, args.batch_size)
+ngram_val = batchify_ngram(corpus.ngram_valid, eval_batch_size)
+ngram_test = batchify_ngram(corpus.ngram_test, eval_batch_size)
+
+ngram_train_len = None
+ngram_valid_len = None
+ngram_test_len = None
+ngram_train_len = batchify(corpus.ngram_train_len, args.batch_size)
+ngram_valid_len = batchify(corpus.ngram_valid_len, eval_batch_size)
+ngram_test_len = batchify(corpus.ngram_test_len, eval_batch_size)
+
+###############################################################################
+# Build the model
+###############################################################################
+
+
+ntokens = len(corpus.dictionary)
+input_tokens = len(corpus.input_dict.idx2word)
+# for no oov corpus
+#  ntokens = input_tokens
+input_unseen_tag_index = corpus.input_unseen_idx
+ngram_num = len(corpus.char_ngrams.chars2idx)
+
+model = model.RNNModel(
+    args.model,
+    input_tokens,
+    input_unseen_tag_index,
+    ntokens,
+    args.emsize,
+    args.nhid,
+    args.nlayers,
+    args.dropout,
+    args.tied,
+    ngram_num,
+    corpus.char_ngrams.pad_index
+).to(device)
+
+
+model.ngram_dict = corpus.ngram_dict.to(device)
+model.ngram_dict_len = corpus.ngram_dict_len.to(device)
+
+# print model's information
+note_for_model_info = f"{args.data} {args.note}"
+model.model_info(note_for_model_info)
+
+
+##############################
+#  loading ngram embeddings  #
+##############################
+
+
+# define SkipGramModel
+if args.use_word2vec:
+    skip_emb_size = args.emsize
+    skip_gram_model = skip_gram.SkipGramModel(
+        len(corpus.skip_data.word2id),
+        skip_emb_size,
+        use_word=args.skip_gram_use_word
+    ).cuda()
+    # bilstm will be called from lm
+    skip_gram_model.lm = model
+    # ngram info will be needed from corpus
+    skip_gram_model.corpus = corpus
+    word_vec_model = word2vec.Word2Vec(corpus.skip_data, skip_gram_model, args.word2vec_out_emb)
+
+    word_vec_model.train()
+
+criterion = nn.CrossEntropyLoss()
+
+###############################################################################
+# Training code
+###############################################################################
+
+def repackage_hidden(h):
+    """Wraps hidden states in new Tensors, to detach them from their history."""
+    if isinstance(h, torch.Tensor):
+        return h.detach()
+    else:
+        return tuple(repackage_hidden(v) for v in h)
+
+
+# get_batch subdivides the source data into chunks of length args.bptt.
+# If source is equal to the example output of the batchify function, with
+# a bptt-limit of 2, we'd get the following two Variables for i = 0:
+# ┌ a g m s ┐ ┌ b h n t ┐
+# └ b h n t ┘ └ c i o u ┘
+# Note that despite the name of the function, the subdivison of data is not
+# done along the batch dimension (i.e. dimension 1), since that was handled
+# by the batchify function. The chunks are along dimension 0, corresponding
+# to the seq_len dimension in the LSTM.
+
+def get_batch(source, i):
+    seq_len = min(args.bptt, len(source) - 1 - i)
+    data = source[i:i+seq_len]
+    target = source[i+1:i+1+seq_len].view(-1)
+    return data, target
+
+def get_batch_ngram(source, i):
+    seq_len = min(args.bptt, len(source) - 1 - i)
+    data = source[i:i+seq_len]
+    return data, None
+
+
+def verbose_test(idx2word, counter, word_indexs, scores):
+    print_contents = []
+    freq_loss = 0
+    freq_count = 0
+    infreq_loss = 0
+    infreq_count = 0
+    invocab_total_count = 0
+    invocab_total_loss = 0
+    for row_i, row in enumerate(word_indexs, 0):
+        line_out = ""
+        for col_i, word_index in enumerate(row, 0):
+            word = idx2word[word_index]
+            score = scores[row_i][col_i]
+            freq = f"unk-{word}"
+            if word in counter:
+                freq = counter[word]
+                if freq >= 16:
+                    freq_loss += score
+                    freq_count += 1
+                else:
+                    infreq_loss += score
+                    infreq_count += 1
+                invocab_total_count += 1
+                invocab_total_loss += score
+            line_out += f"{word}[score:{score:5.2f},freq:{freq}]  "
+        line_score = scores[row_i].sum()
+        line_out = f"{line_score:5.1f}: {line_out}"
+        print_contents.append(line_out)
+    return print_contents, [freq_loss, freq_count], [infreq_loss, infreq_count]
+
+
+def evaluate(
+    data_source, fixed_data_source, 
+    data_source_ngram, data_source_ngram_len, verbose=False
+):
+    # Turn on evaluation mode which disables dropout.
+    if verbose:
+        from collections import Counter
+        counter = Counter()
+        train_file = f"{args.data}/train.txt"
+        lines = [
+            counter.update(line.strip().split()) for line in open(train_file, 'r').readlines()
+        ]
+        verbose_criterion = nn.CrossEntropyLoss(reduce=False)
+
+    model.eval()
+    total_loss = 0.
+    total_freq_loss = 0.
+    total_freq_count = 0
+    total_infreq_loss = 0.
+    total_infreq_count = 0
+    #  ntokens = len(corpus.dictionary)
+    hidden = model.init_hidden(eval_batch_size)
+    with torch.no_grad():
+        for i in range(0, data_source.size(0) - 1, args.bptt):
+            _, targets = get_batch(data_source, i)
+            data, _ = get_batch(fixed_data_source, i)
+            ngram_data, _ = get_batch_ngram(data_source_ngram, i)
+            ngram_data_len = None
+            ngram_data_len, _ = get_batch(data_source_ngram_len, i)
+
+            output, hidden = model(data, ngram_data, ngram_data_len, hidden)
+            output_flat = output.view(-1, ntokens)
+            total_loss += len(data) * criterion(output_flat, targets).item()
+            hidden = repackage_hidden(hidden)
+            if verbose:
+                verbose_loss = verbose_criterion(output_flat, targets)
+                verbose_loss = verbose_loss.view(data.size(0), -1)
+                print_contents, [freq_loss, freq_count], [infreq_loss, infreq_count] = verbose_test(
+                    corpus.dictionary.idx2word, counter,
+                    data.t(), verbose_loss.t()
+                )
+                total_freq_loss += freq_loss
+                total_freq_count += freq_count
+                total_infreq_loss += infreq_loss
+                total_infreq_count += infreq_count
+                #  for print_line in print_contents:
+                    #  fh_out.write(f"{print_line}\n")
+
+    if verbose:
+        #  fh_out.close()
+        freq_infreq_count = total_freq_count + total_infreq_count
+        freq_infreq_loss = total_freq_loss + total_infreq_loss
+        return math.exp(total_freq_loss / total_freq_count), math.exp(total_infreq_loss / total_infreq_count), math.exp(freq_infreq_loss / freq_infreq_count)
+    return total_loss / len(data_source)
+
+
+def train():
+    # Turn on training mode which enables dropout.
+    model.train()
+    total_loss = 0.
+    start_time = time.time()
+    #  ntokens = len(corpus.dictionary)
+    hidden = model.init_hidden(args.batch_size)
+    for batch, i in enumerate(range(0, train_data.size(0) - 1, args.bptt)):
+        _, targets = get_batch(train_data, i)
+        data, _ = get_batch(fixed_train_data, i)
+        ngram_data, _ = get_batch_ngram(ngram_train, i)
+        ngram_data_len = None
+        ngram_data_len, _ = get_batch(ngram_train_len, i)
+
+        # Starting each batch, we detach the hidden state from how it was previously produced.
+        # If we didn't, the model would try backpropagating all the way to start of the dataset.
+        hidden = repackage_hidden(hidden)
+        model.zero_grad()
+        output, hidden = model(data, ngram_data, ngram_data_len, hidden)
+        loss = criterion(output.view(-1, ntokens), targets)
+        loss.backward()
+
+        # `clip_grad_norm` helps prevent the exploding gradient problem in RNNs / LSTMs.
+        torch.nn.utils.clip_grad_norm_(model.parameters(), args.clip)
+        for p in model.parameters():
+            if p.grad is not None:
+                p.data.add_(-lr, p.grad.data)
+
+        total_loss += loss.item()
+
+        if batch % args.log_interval == 0 and batch > 0:
+            cur_loss = total_loss / args.log_interval
+            elapsed = time.time() - start_time
+            #  print('| epoch {:3d} | {:5d}/{:5d} batches | lr {:02.2f} | ms/batch {:5.2f} | '
+                    #  'loss {:5.2f} | ppl {:8.2f}'.format(
+                #  epoch, batch, len(train_data) // args.bptt, lr,
+                #  elapsed * 1000 / args.log_interval, cur_loss, math.exp(cur_loss)))
+            total_loss = 0
+            start_time = time.time()
+
+
+# Loop over epochs.
+lr = args.lr
+best_val_loss = None
+
+# At any point you can hit Ctrl + C to break out of training early.
+all_train_start_time = datetime.datetime.now()
+try:
+    for epoch in range(1, args.epochs+1):
+        epoch_start_time = time.time()
+        train()
+        val_loss = evaluate(val_data, fixed_val_data, ngram_val, ngram_valid_len, False)
+
+        #  print('-' * 89)
+        print('| end of epoch {:3d} | time: {:5.2f}s | valid loss {:5.2f} | '
+                'valid ppl {:8.2f} lr:{:5.2f}'.format(epoch, (time.time() - epoch_start_time),
+                                           val_loss, math.exp(val_loss), lr))
+        #  print('-' * 89)
+        # Save the model if the validation loss is the best we've seen so far.
+        if not best_val_loss or val_loss < best_val_loss:
+            #  with open(args.save, 'wb') as f:
+                #  torch.save(model, f)
+            best_val_loss = val_loss
+        else:
+            # Anneal the learning rate if no improvement has been seen in the validation dataset.
+            lr /= 4.0
+        if lr < 0.05:
+            break
+except KeyboardInterrupt:
+    print('-' * 89)
+    print('Exiting from training early')
+
+all_train_end_time = datetime.datetime.now()
+all_train_time = f"{all_train_end_time - all_train_start_time}"
+print(f"all training time elapsed: {all_train_time}")
+print(f"training time per epoch: {(all_train_end_time - all_train_start_time) / args.epochs}")
+
+# Run on test data.
+test_loss = evaluate(test_data, fixed_test_data, ngram_test, ngram_test_len, False)
+print('=' * 89)
+print('| End of training | test loss {:5.2f} | best_val_ppl {:8.2f} test ppl {:8.2f}'.format(
+    test_loss, math.exp(best_val_loss), math.exp(test_loss)))
+print('=' * 89)
+print(f"final_out: {args.data} {args.note} {math.exp(best_val_loss)} {math.exp(test_loss)}")
+# run logging files
+#  freq_ppl, infreq_ppl = evaluate(val_data, verbose=True)
+freq_ppl, infreq_ppl, invocab_ppl = evaluate(
+    test_data, fixed_test_data, ngram_test, ngram_test_len, True
+)
+print(f"freq ppl: {freq_ppl}, infreq ppl: {infreq_ppl}, invocab_ppl: {invocab_ppl}")
