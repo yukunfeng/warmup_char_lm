@@ -33,6 +33,6 @@ Run character-aware NLMs with warmed up character encoder:
 python -u main.py --dropout 0.5 --use_word2vec --input_freq 1 --max_gram_n 3 --note "char_lm_warmup" \
     --data ./data/en/ --epoch 40 --emsize 650 --nhid 650
 ```
-Note that the Skip-gram implementation in the code is not optimized and thus the training is quite slow.
+Note that the Skip-gram implementation in the code is not optimized and thus the training is quite slow. The configuration for skip-gram is fixed in the code, such as epoch, window size, batch_size etc. More details are in `word2vec.py`).
 
 
