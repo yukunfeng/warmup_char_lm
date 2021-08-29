@@ -57,8 +57,16 @@ parser.add_argument('--input_freq', type=int, default=None,
                     help='freq threshould for input word')
 parser.add_argument('--note', type=str, default="",
                     help='extra note in final one-line result output')
-parser.add_argument('--use_word2vec', action='store_true',
+parser.add_argument('--use_warmup', action='store_true',
                     help='whether warm up character encoder')
+parser.add_argument('--skipgram_batch_size', type=int, default=200,
+                    help='batch size for skipgram if warmup is used')
+parser.add_argument('--skipgram_window_size', type=int, default=5,
+                    help='window size for skipgram if warmup is used')
+parser.add_argument('--skipgram_epoch', type=int, default=7,
+                    help='training epoch of skipgram if warmup is used')
+parser.add_argument('--skipgram_lr', type=int, default=10,
+                    help='learning rate for skipgram if warmup is used.')
 args = parser.parse_args()
 # generate out emb path
 file_path = os.path.expanduser(args.data)
@@ -205,7 +213,13 @@ if args.use_word2vec:
     skip_gram_model.lm = model
     # ngram info will be needed from corpus
     skip_gram_model.corpus = corpus
-    word_vec_model = word2vec.Word2Vec(corpus.skip_data, skip_gram_model, args.word2vec_out_emb)
+    word_vec_model = word2vec.Word2Vec(corpus.skip_data,
+        skip_gram_model,
+        args.word2vec_out_emb,
+        batch_size=args.skipgram_batch_size,
+        window_size=args.skipgram_window_size,
+        iteration=args.skipgram_epoch,
+        initial_lr=args.skipgram_lr)
 
     word_vec_model.train()
 

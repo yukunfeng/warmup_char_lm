@@ -14,17 +14,7 @@ class Word2Vec:
                  batch_size=200,
                  window_size=5,
                  iteration=7,
-                 initial_lr=10,
-                 min_count=10):
-    #  def __init__(self,
-                 #  skip_data,
-                 #  skip_model,
-                 #  output_file_name,
-                 #  batch_size=4000,
-                 #  window_size=5,
-                 #  iteration=1,
-                 #  initial_lr=10,
-                 #  min_count=10):
+                 initial_lr=10):
         """Initilize class parameters.
 
         Args:
@@ -39,7 +29,6 @@ class Word2Vec:
         Returns:
             None.
         """
-        #  self.data = InputData(input_file_name, min_count)
         self.data = skip_data
         self.output_file_name = output_file_name
         self.emb_size = len(self.data.word2id)
