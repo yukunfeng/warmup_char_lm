@@ -1,0 +1,114 @@
+Namespace(batch_size=20, bptt=35, clip=0.25, cluster_path=None, data='./data/zh', device='cuda:0', dropout=0.5, emsize=650, epochs=40, freq_thre=-1, init_emb_pos='in', input_freq=1, log_interval=200, lr=20, max_gram_n=1, model='LSTM', nhid=650, nlayers=2, note='char_lm', onnx_export='', output_emb='./data/zh/lm.char_lm.emb', save='model.pt', seed=1111, skip_gram_use_word=False, tied=False, use_word2vec=False, verbose_test_file=None, word2vec_out_emb='./data/zh/word2vec.char_lm.emb')
+max length of word:21
+n value in n-gram: 1
+Word Count: 43676
+Sentence Length: 746113
+./data/zh char_lm total param_num: 47.016M
+./data/zh char_lm decoder vocab size: 43676
+./data/zh char_lm ngram vocab size: 6456
+| end of epoch   1 | time: 59.80s | valid loss  7.45 | valid ppl  1718.48 lr:20.00
+| end of epoch   2 | time: 60.78s | valid loss  7.14 | valid ppl  1256.02 lr:20.00
+| end of epoch   3 | time: 61.79s | valid loss  6.88 | valid ppl   968.75 lr:20.00
+| end of epoch   4 | time: 61.78s | valid loss  6.71 | valid ppl   818.37 lr:20.00
+test ppl : 792.4479990518847
+-----------------------------------------------------------------------------------------
+Exiting from training early
+all training time elapsed: 0:04:59.625157
+training time per epoch: 0:00:07.490629
+=========================================================================================
+| End of training | test loss  6.65 | best_val_ppl   818.37 test ppl   773.33
+=========================================================================================
+final_out: ./data/zh char_lm 818.372154105462 773.3282729235723
+freq ppl: 734.449043111731, infreq ppl: 674.2582677107306, invocab_ppl: 724.2564001029597
+Namespace(batch_size=20, bptt=35, clip=0.25, data='./data/zh', device='cuda:0', dropout=0.5, emsize=650, epochs=40, freq_thre=-1, input_freq=1, log_interval=200, lr=20, max_gram_n=1, model='LSTM', nhid=650, nlayers=2, note='char_lm', save='model.pt', seed=1111, skip_gram_use_word=False, tied=False, use_word2vec=False, word2vec_out_emb='./data/zh/word2vec.char_lm.emb')
+max length of word:21
+n value in n-gram: 1
+Word Count: 43676
+Sentence Length: 746113
+./data/zh char_lm total param_num: 47.016M
+./data/zh char_lm decoder vocab size: 43676
+./data/zh char_lm ngram vocab size: 6456
+| end of epoch   1 | time: 59.68s | valid loss  7.45 | valid ppl  1718.48 lr:20.00
+| end of epoch   2 | time: 60.61s | valid loss  7.14 | valid ppl  1256.02 lr:20.00
+| end of epoch   3 | time: 61.53s | valid loss  6.88 | valid ppl   968.75 lr:20.00
+| end of epoch   4 | time: 61.74s | valid loss  6.71 | valid ppl   818.37 lr:20.00
+test ppl : 792.4479990518847
+| end of epoch   5 | time: 61.80s | valid loss  6.63 | valid ppl   759.29 lr:20.00
+| end of epoch   6 | time: 61.95s | valid loss  6.58 | valid ppl   719.22 lr:20.00
+-----------------------------------------------------------------------------------------
+Exiting from training early
+all training time elapsed: 0:06:31.272963
+training time per epoch: 0:00:09.781824
+Namespace(batch_size=20, bptt=35, clip=0.25, data='./data/zh', device='cuda:0', dropout=0.5, emsize=650, epochs=40, freq_thre=-1, input_freq=1, log_interval=200, lr=20, max_gram_n=1, model='LSTM', nhid=650, nlayers=2, note='char_lm_warmup', save='model.pt', seed=1111, skip_gram_use_word=False, tied=False, use_word2vec=True, word2vec_out_emb='./data/zh/word2vec.char_lm_warmup.emb')
+max length of word:21
+n value in n-gram: 1
+Namespace(batch_size=20, bptt=35, clip=0.25, data='./data/zh', device='cuda:0', dropout=0.5, emsize=650, epochs=40, freq_thre=-1, input_freq=1, log_interval=200, lr=20, max_gram_n=1, model='LSTM', nhid=650, nlayers=2, note='char_lm', save='model.pt', seed=1111, skip_gram_use_word=False, tied=False, use_word2vec=False, word2vec_out_emb='./data/zh/word2vec.char_lm.emb')
+max length of word:21
+n value in n-gram: 1
+Word Count: 43676
+Sentence Length: 746113
+./data/zh char_lm total param_num: 47.016M
+./data/zh char_lm decoder vocab size: 43676
+./data/zh char_lm ngram vocab size: 6456
+| end of epoch   1 | time: 60.34s | valid loss  7.45 | valid ppl  1718.48 lr:20.00
+| end of epoch   2 | time: 61.25s | valid loss  7.14 | valid ppl  1256.02 lr:20.00
+| end of epoch   3 | time: 62.29s | valid loss  6.88 | valid ppl   968.75 lr:20.00
+-----------------------------------------------------------------------------------------
+Exiting from training early
+all training time elapsed: 0:03:09.503013
+training time per epoch: 0:00:04.737575
+=========================================================================================
+| End of training | test loss  6.86 | best_val_ppl   968.75 test ppl   950.09
+=========================================================================================
+final_out: ./data/zh char_lm 968.754433532794 950.0891481862776
+Namespace(batch_size=20, bptt=35, clip=0.25, data='./data/zh', device='cuda:0', dropout=0.5, emsize=650, epochs=40, freq_thre=-1, input_freq=1, log_interval=200, lr=20, max_gram_n=1, model='LSTM', nhid=650, nlayers=2, note='char_lm_warmup', save='model.pt', seed=1111, skip_gram_use_word=False, tied=False, use_word2vec=True, word2vec_out_emb='./data/zh/word2vec.char_lm_warmup.emb')
+max length of word:21
+n value in n-gram: 1
+Word Count: 43676
+Sentence Length: 746113
+./data/zh char_lm_warmup total param_num: 47.016M
+./data/zh char_lm_warmup decoder vocab size: 43676
+./data/zh char_lm_warmup ngram vocab size: 6456
+Namespace(batch_size=20, bptt=35, clip=0.25, data='./data/zh', device='cuda:0', dropout=0.5, emsize=650, epochs=40, freq_thre=-1, input_freq=1, log_interval=200, lr=20, max_gram_n=1, model='LSTM', nhid=650, nlayers=2, note='char_lm_warmup', save='model.pt', seed=1111, skip_gram_use_word=False, tied=False, use_word2vec=True, word2vec_out_emb='./data/zh/word2vec.char_lm_warmup.emb')
+max length of word:21
+n value in n-gram: 1
+Word Count: 43676
+Sentence Length: 746113
+./data/zh char_lm_warmup total param_num: 47.016M
+./data/zh char_lm_warmup decoder vocab size: 43676
+./data/zh char_lm_warmup ngram vocab size: 6456
+| end of epoch   1 | time: 61.09s | valid loss  6.83 | valid ppl   927.38 lr:20.00
+| end of epoch   2 | time: 61.63s | valid loss  6.58 | valid ppl   718.58 lr:20.00
+| end of epoch   3 | time: 61.83s | valid loss  6.47 | valid ppl   643.46 lr:20.00
+| end of epoch   4 | time: 61.97s | valid loss  6.38 | valid ppl   589.30 lr:20.00
+| end of epoch   5 | time: 61.57s | valid loss  6.32 | valid ppl   556.09 lr:20.00
+| end of epoch   6 | time: 61.95s | valid loss  6.31 | valid ppl   547.92 lr:20.00
+| end of epoch   7 | time: 62.03s | valid loss  6.35 | valid ppl   571.78 lr:20.00
+| end of epoch   8 | time: 61.92s | valid loss  6.22 | valid ppl   504.28 lr: 5.00
+| end of epoch   9 | time: 62.04s | valid loss  6.21 | valid ppl   496.75 lr: 5.00
+| end of epoch  10 | time: 61.98s | valid loss  6.21 | valid ppl   497.52 lr: 5.00
+| end of epoch  11 | time: 62.06s | valid loss  6.19 | valid ppl   488.42 lr: 1.25
+| end of epoch  12 | time: 62.00s | valid loss  6.19 | valid ppl   488.21 lr: 1.25
+| end of epoch  13 | time: 62.01s | valid loss  6.19 | valid ppl   485.74 lr: 1.25
+| end of epoch  14 | time: 62.01s | valid loss  6.18 | valid ppl   484.62 lr: 1.25
+| end of epoch  15 | time: 62.02s | valid loss  6.19 | valid ppl   488.38 lr: 1.25
+| end of epoch  16 | time: 61.97s | valid loss  6.17 | valid ppl   479.71 lr: 0.31
+| end of epoch  17 | time: 61.92s | valid loss  6.17 | valid ppl   478.73 lr: 0.31
+| end of epoch  18 | time: 62.07s | valid loss  6.17 | valid ppl   478.74 lr: 0.31
+| end of epoch  19 | time: 62.07s | valid loss  6.17 | valid ppl   476.36 lr: 0.08
+| end of epoch  20 | time: 61.99s | valid loss  6.16 | valid ppl   475.51 lr: 0.08
+| end of epoch  21 | time: 62.00s | valid loss  6.16 | valid ppl   475.22 lr: 0.08
+| end of epoch  22 | time: 62.05s | valid loss  6.16 | valid ppl   475.16 lr: 0.08
+| end of epoch  23 | time: 61.98s | valid loss  6.16 | valid ppl   474.89 lr: 0.08
+| end of epoch  24 | time: 62.04s | valid loss  6.16 | valid ppl   474.68 lr: 0.08
+| end of epoch  25 | time: 62.04s | valid loss  6.16 | valid ppl   474.48 lr: 0.08
+| end of epoch  26 | time: 61.96s | valid loss  6.16 | valid ppl   474.44 lr: 0.08
+| end of epoch  27 | time: 62.02s | valid loss  6.16 | valid ppl   474.43 lr: 0.08
+| end of epoch  28 | time: 61.98s | valid loss  6.16 | valid ppl   474.59 lr: 0.08
+all training time elapsed: 0:28:54.229014
+training time per epoch: 0:00:43.355725
+=========================================================================================
+| End of training | test loss  6.16 | best_val_ppl   474.43 test ppl   471.80
+=========================================================================================
+final_out: ./data/zh char_lm_warmup 474.433480847318 471.7993930401862
+freq ppl: 441.7299484617235, infreq ppl: 415.59936732548925, invocab_ppl: 437.3495768869745
