@@ -14,7 +14,7 @@ We used a subset of [lmmrl](http://people.ds.cam.ac.uk/dsg40/lmmrl.html) dataset
 ```
 python main.py -h
 
-  -h, --help            show this help message and exit
+   -h, --help            show this help message and exit
   --data DATA           location of the data corpus
   --model MODEL         type of recurrent net (RNN_TANH, RNN_RELU, LSTM, GRU)
   --emsize EMSIZE       size of word embeddings
@@ -40,7 +40,15 @@ python main.py -h
   --input_freq INPUT_FREQ
                         freq threshould for input word
   --note NOTE           extra note in final one-line result output
-  --use_word2vec        whether warm up character encoder
+  --use_warmup          whether warm up character encoder
+  --skipgram_batch_size SKIPGRAM_BATCH_SIZE
+                        batch size for skipgram if warmup is used
+  --skipgram_window_size SKIPGRAM_WINDOW_SIZE
+                        window size for skipgram if warmup is used
+  --skipgram_epoch SKIPGRAM_EPOCH
+                        training epoch of skipgram if warmup is used
+  --skipgram_lr SKIPGRAM_LR
+                        learning rate for skipgram if warmup is used.
 ```
 
 ## Run experiments
@@ -53,7 +61,8 @@ python -u main.py --dropout 0.5  --input_freq 1 --max_gram_n 3 --note "char_lm" 
 
 Run character-aware NLMs with warmed up character encoder:
 ```
-python -u main.py --dropout 0.5 --use_word2vec --input_freq 1 --max_gram_n 3 --note "char_lm_warmup" \
-    --data ./data/en/ --epoch 40 --emsize 650 --nhid 650
+python -u main.py --dropout 0.5 --input_freq 1 --max_gram_n 3 --note "char_lm_warmup" \
+    --data $data_path --epoch 40 --emsize 650 --nhid 650 --use_warmup \
+    --skipgram_batch_size 200 --skipgram_window_size 5 --skipgram_epoch 7 --skipgram_lr 10
 ```
-Note that the Skip-gram implementation in the code is not optimized and thus the training is quite slow. The configuration for skip-gram is fixed in the code, such as epoch, window size, batch_size etc. More details are in `word2vec.py`).
+Note that the Skip-gram implementation in the code is not optimized and thus the training is quite slow.
