@@ -202,7 +202,7 @@ model.model_info(note_for_model_info)
 
 
 # define SkipGramModel
-if args.use_word2vec:
+if args.use_warmup:
     skip_emb_size = args.emsize
     skip_gram_model = skip_gram.SkipGramModel(
         len(corpus.skip_data.word2id),
