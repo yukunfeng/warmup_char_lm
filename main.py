@@ -52,13 +52,13 @@ parser.add_argument('--save', type=str, default='model.pt',
 parser.add_argument('--freq_thre', type=int, default=-1,
                     help='freq threshould')
 parser.add_argument('--max_gram_n', type=int, default=3,
-                    help='ngram n')
+                    help='character n-gram. We use 1 for japanese and Chinese and 3 for other languages.')
 parser.add_argument('--input_freq', type=int, default=None,
                     help='freq threshould for input word')
 parser.add_argument('--note', type=str, default="",
                     help='extra note in final one-line result output')
 parser.add_argument('--use_word2vec', action='store_true',
-                    help='whether use word2vec')
+                    help='whether warm up character encoder')
 args = parser.parse_args()
 # generate out emb path
 file_path = os.path.expanduser(args.data)
