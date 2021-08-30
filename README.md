@@ -51,7 +51,7 @@ python main.py -h
                         learning rate for skipgram if warmup is used.
 ```
 
-## Run experiments
+## Reproduce results in the paper
 Run character-aware NLMs:
 
 ```
